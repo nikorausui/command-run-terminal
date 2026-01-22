@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Windows脅威ハンティング可視化システム - 拡張版</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #151c32;
+      --panel-alt: #1b2440;
+      --text: #e6edf3;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --danger: #f43f5e;
+      --warning: #f59e0b;
+      --success: #22c55e;
+      --border: rgba(148, 163, 184, 0.2);
+      --glow: 0 0 18px rgba(56, 189, 248, 0.5);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+      background: radial-gradient(circle at top, #162447, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 32px 40px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 34px);
+      letter-spacing: 0.5px;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .stats {
+      display: grid;
+      gap: 16px;
+      padding: 0 40px 24px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(15, 23, 42, 0.7));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: var(--glow);
+    }
+
+    .stat-card span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .stat-card strong {
+      font-size: 28px;
+    }
+
+    .dashboard {
+      margin: 0 40px 40px;
+      background: var(--panel);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .canvas-area {
+      position: relative;
+      min-height: 620px;
+    }
+
+    .node {
+      position: absolute;
+      width: 160px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+      transition: transform 0.3s ease;
+      z-index: 2;
+    }
+
+    .node:hover {
+      transform: translateY(-4px);
+    }
+
+    .node h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .node p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .node .icon {
+      font-size: 20px;
+    }
+
+    .node.compromised {
+      border: 2px solid var(--danger);
+      box-shadow: 0 0 20px rgba(244, 63, 94, 0.7);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.02);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .flow-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .flow-labels {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .flow-label {
+      position: absolute;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      font-size: 12px;
+      color: var(--text);
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .flow-label:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend i {
+      width: 18px;
+      height: 4px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .legend .normal {
+      background: var(--accent);
+    }
+
+    .legend .malicious {
+      background: var(--danger);
+      border: 1px dashed rgba(244, 63, 94, 0.8);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      padding: 20px;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--panel-alt);
+      border-radius: 20px;
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: auto;
+      border: 1px solid var(--border);
+      padding: 24px;
+      position: relative;
+    }
+
+    .modal-card h2 {
+      margin-top: 0;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 8px 0 16px;
+    }
+
+    .tag {
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      font-size: 12px;
+    }
+
+    .warning {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.5);
+      margin-bottom: 16px;
+    }
+
+    .section {
+      margin-bottom: 18px;
+    }
+
+    .log-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .log-item {
+      background: rgba(15, 23, 42, 0.7);
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .severity {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+
+    .critical {
+      background: rgba(244, 63, 94, 0.25);
+      color: #fecdd3;
+    }
+
+    .high {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fde68a;
+    }
+
+    .medium {
+      background: rgba(56, 189, 248, 0.2);
+      color: #bae6fd;
+    }
+
+    .low {
+      background: rgba(34, 197, 94, 0.2);
+      color: #bbf7d0;
+    }
+
+    .iotable {
+      display: grid;
+      gap: 8px;
+    }
+
+    .iotable div {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+      padding: 10px;
+      border: 1px dashed rgba(148, 163, 184, 0.4);
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard {
+        margin: 0 20px 32px;
+      }
+
+      header,
+      .stats {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+
+      .node {
+        width: 140px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🛡️ Windows脅威ハンティング可視化システム - 拡張版</h1>
+    <p>MITRE ATT&amp;CK 対応 / Windows環境における高度な脅威ハンティングと横展開の可視化</p>
+  </header>
+
+  <section class="stats">
+    <div class="stat-card">
+      <span>攻撃シナリオ数</span>
+      <strong>15</strong>
+      <span>横展開 / 権限昇格 / 永続化</span>
+    </div>
+    <div class="stat-card">
+      <span>Event Log ID 数</span>
+      <strong>42</strong>
+      <span>Security / Defender / PowerShell</span>
+    </div>
+    <div class="stat-card">
+      <span>Sysmon ID 数</span>
+      <strong>18</strong>
+      <span>プロセス / ネットワーク / レジストリ</span>
+    </div>
+    <div class="stat-card">
+      <span>MITRE ATT&amp;CK 技術数</span>
+      <strong>23</strong>
+      <span>TA0008 / TA0003 / TA0005</span>
+    </div>
+  </section>
+
+  <main class="dashboard">
+    <div class="canvas-area" id="canvas">
+      <!-- Nodes -->
+      <div class="node compromised" id="client1" style="top: 70px; left: 40px;">
+        <div class="icon">💻</div>
+        <h3>Client PC-01</h3>
+        <p>侵害済み / 初期侵入</p>
+      </div>
+      <div class="node" id="client2" style="top: 250px; left: 30px;">
+        <div class="icon">💻</div>
+        <h3>Client PC-02</h3>
+        <p>ユーザー端末</p>
+      </div>
+      <div class="node" id="client3" style="top: 430px; left: 60px;">
+        <div class="icon">💻</div>
+        <h3>Client PC-03</h3>
+        <p>開発端末</p>
+      </div>
+      <div class="node" id="web" style="top: 70px; left: 310px;">
+        <div class="icon">🌐</div>
+        <h3>Web Server</h3>
+        <p>IIS / API Gateway</p>
+      </div>
+      <div class="node" id="file" style="top: 240px; left: 320px;">
+        <div class="icon">📁</div>
+        <h3>File Server</h3>
+        <p>SMB / DFS</p>
+      </div>
+      <div class="node" id="db" style="top: 430px; left: 320px;">
+        <div class="icon">🗄️</div>
+        <h3>Database Server</h3>
+        <p>MSSQL / バックアップ</p>
+      </div>
+      <div class="node" id="dc" style="top: 200px; left: 620px;">
+        <div class="icon">🛡️</div>
+        <h3>Domain Controller</h3>
+        <p>AD / Kerberos</p>
+      </div>
+      <div class="node" id="c2" style="top: 350px; left: 630px;">
+        <div class="icon">🚨</div>
+        <h3>外部 C2 サーバー</h3>
+        <p>Beacon / Exfil</p>
+      </div>
+
+      <svg class="flow-layer" id="flow-layer"></svg>
+      <div class="flow-labels" id="flow-labels"></div>
+    </div>
+    <div class="legend">
+      <span><i class="normal"></i>正常通信</span>
+      <span><i class="malicious"></i>悪意通信</span>
+    </div>
+  </main>
+
+  <div class="modal" id="modal">
+    <div class="modal-card">
+      <button class="close-btn" id="close-modal">×</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script>
+    // ノード座標をもとに通信線を動的に描画する
+    const flows = [
+      {
+        id: "rdp",
+        label: "RDP",
+        from: "client2",
+        to: "dc",
+        type: "normal",
+        curve: -0.25,
+        detail: {
+          title: "RDPによる管理アクセス",
+          malicious: false,
+          mitre: ["T1021.001"],
+          description: "ヘルプデスクがDCへRDP接続する正規管理オペレーション。",
+          logs: {
+            security: { level: "Low", event: "4624 (LogonType=10)" },
+            sysmon: { level: "Low", event: "3 (Network connection)" },
+            powershell: { level: "Low", event: "—" },
+            defender: { level: "Low", event: "—" }
+          },
+          hunting: "ログオン元IPのホワイトリストと時間帯の相関を確認。",
+          defense: "NLA強制、JITアクセスの導入。",
+          iocs: ["mstsc.exe", "Target: DC01", "Port 3389"]
+        }
+      },
+      {
+        id: "pth",
+        label: "Pass-the-Hash",
+        from: "client1",
+        to: "file",
+        type: "malicious",
+        curve: 0.15,
+        detail: {
+          title: "Pass-the-Hash による横展開",
+          malicious: true,
+          mitre: ["T1550.002"],
+          description: "侵害済み端末からNTLMハッシュを用いてファイルサーバーへ不正ログオン。",
+          logs: {
+            security: { level: "Critical", event: "4624 (LogonType=3) / 4625" },
+            sysmon: { level: "High", event: "10 (Process Access)" },
+            powershell: { level: "Medium", event: "4104 (ScriptBlock)" },
+            defender: { level: "High", event: "Suspicious credential use" }
+          },
+          hunting: "同一ハッシュで複数ホストにログオンするパターンを追跡。",
+          defense: "NTLM制限、Credential Guard、LAPS。",
+          iocs: ["sekurlsa::pth", "NTLM", "\"WmiPrvSE.exe\""]
+        }
+      },
+      {
+        id: "mimikatz",
+        label: "Mimikatz",
+        from: "client1",
+        to: "client3",
+        type: "malicious",
+        curve: -0.2,
+        detail: {
+          title: "Mimikatzによる認証情報窃取",
+          malicious: true,
+          mitre: ["T1003.001"],
+          description: "LSASSから認証情報を取得し開発端末への侵害を準備。",
+          logs: {
+            security: { level: "High", event: "4688 (Process Creation)" },
+            sysmon: { level: "Critical", event: "10 (Process Access to lsass.exe)" },
+            powershell: { level: "Medium", event: "4104" },
+            defender: { level: "High", event: "Credential dumping detected" }
+          },
+          hunting: "LSASSへのアクセスとドライバー読み込みイベントを相関。",
+          defense: "RunAsPPL、LSASS保護、EDR検知。",
+          iocs: ["mimikatz.exe", "sekurlsa::logonpasswords", "lsass.exe"]
+        }
+      },
+      {
+        id: "cs",
+        label: "Cobalt Strike",
+        from: "client1",
+        to: "c2",
+        type: "malicious",
+        curve: 0.3,
+        detail: {
+          title: "Cobalt Strike Beacon通信",
+          malicious: true,
+          mitre: ["T1071.001"],
+          description: "HTTPSを模倣したBeacon通信でC2とセッション維持。",
+          logs: {
+            security: { level: "Medium", event: "5156 (Allowed connection)" },
+            sysmon: { level: "High", event: "3 (Network connection)" },
+            powershell: { level: "Low", event: "—" },
+            defender: { level: "High", event: "Suspicious network beacon" }
+          },
+          hunting: "Jitterや周期性のある外向き通信を機械学習で検出。",
+          defense: "TLSインスペクション、C2シグネチャ遮断。",
+          iocs: ["/submit.php", "User-Agent: Mozilla/5.0", "Domain: evil.example"]
+        }
+      },
+      {
+        id: "kerberoasting",
+        label: "Kerberoasting",
+        from: "client1",
+        to: "dc",
+        type: "malicious",
+        curve: -0.05,
+        detail: {
+          title: "Kerberoastingによるサービスアカウント攻撃",
+          malicious: true,
+          mitre: ["T1558.003"],
+          description: "SPNを列挙しTGSチケットを取得、オフラインでパスワード解析。",
+          logs: {
+            security: { level: "High", event: "4769 (Kerberos TGS Request)" },
+            sysmon: { level: "Medium", event: "1 (Process creation)" },
+            powershell: { level: "Medium", event: "4104" },
+            defender: { level: "Medium", event: "Suspicious Kerberos activity" }
+          },
+          hunting: "短時間に大量のTGS要求が発生していないか監視。",
+          defense: "サービスアカウントの長いパスワードとAES化。",
+          iocs: ["Invoke-Kerberoast", "GetUserSPNs", "klist.exe"]
+        }
+      },
+      {
+        id: "dcsync",
+        label: "DCSync",
+        from: "client1",
+        to: "dc",
+        type: "malicious",
+        curve: 0.12,
+        detail: {
+          title: "DCSync によるADデータ取得",
+          malicious: true,
+          mitre: ["T1003.006"],
+          description: "Directory Replication APIを悪用してパスワードハッシュを取得。",
+          logs: {
+            security: { level: "Critical", event: "4662 (Directory Replication)" },
+            sysmon: { level: "High", event: "1 (Process creation)" },
+            powershell: { level: "Medium", event: "4104" },
+            defender: { level: "High", event: "Credential theft" }
+          },
+          hunting: "DRSGetNCChangesの呼び出し元を追跡。",
+          defense: "ACL監査、特権アカウントの分離。",
+          iocs: ["lsadump::dcsync", "replication privileges"]
+        }
+      },
+      {
+        id: "golden",
+        label: "Golden Ticket",
+        from: "dc",
+        to: "client2",
+        type: "malicious",
+        curve: -0.18,
+        detail: {
+          title: "Golden Ticketによる永続化",
+          malicious: true,
+          mitre: ["T1558.001"],
+          description: "KRBTGTハッシュを使用して偽のTGTを生成。",
+          logs: {
+            security: { level: "High", event: "4769/4624" },
+            sysmon: { level: "Medium", event: "1" },
+            powershell: { level: "Low", event: "—" },
+            defender: { level: "High", event: "Suspicious ticket" }
+          },
+          hunting: "異常なTGT寿命やSIDsを検出。",
+          defense: "KRBTGT定期更新、監査ログ強化。",
+          iocs: ["kerberos::golden", "krbtgt"]
+        }
+      },
+      {
+        id: "wmi",
+        label: "WMI",
+        from: "client1",
+        to: "client3",
+        type: "malicious",
+        curve: 0.08,
+        detail: {
+          title: "WMIによる横展開",
+          malicious: true,
+          mitre: ["T1047"],
+          description: "WMIを利用したリモートプロセス実行。",
+          logs: {
+            security: { level: "Medium", event: "4688/4697" },
+            sysmon: { level: "High", event: "1/3" },
+            powershell: { level: "Medium", event: "4104" },
+            defender: { level: "Medium", event: "WMI event subscription" }
+          },
+          hunting: "wmiprvse.exeからの親子プロセス関係を追跡。",
+          defense: "WMI権限の最小化、イベントサブスクリプション監視。",
+          iocs: ["wmic.exe", "wmiprvse.exe"]
+        }
+      },
+      {
+        id: "empire",
+        label: "PowerShell Empire",
+        from: "client1",
+        to: "web",
+        type: "malicious",
+        curve: -0.14,
+        detail: {
+          title: "PowerShell Empire C2",
+          malicious: true,
+          mitre: ["T1059.001"],
+          description: "PowerShellを悪用したメモリ内実行とC2通信。",
+          logs: {
+            security: { level: "Medium", event: "4688" },
+            sysmon: { level: "High", event: "1/3" },
+            powershell: { level: "Critical", event: "4104 (EncodedCommand)" },
+            defender: { level: "High", event: "AMSI detection" }
+          },
+          hunting: "EncodedCommandやInvoke-Expressionを含むスクリプトを精査。",
+          defense: "Constrained Language Mode、AMSI強化。",
+          iocs: ["powershell -enc", "Invoke-Obfuscation"]
+        }
+      },
+      {
+        id: "psexec",
+        label: "PsExec",
+        from: "client1",
+        to: "file",
+        type: "malicious",
+        curve: -0.3,
+        detail: {
+          title: "PsExecによるリモート実行",
+          malicious: true,
+          mitre: ["T1569.002"],
+          description: "サービス作成によりリモートでコマンド実行。",
+          logs: {
+            security: { level: "High", event: "7045 (Service creation)" },
+            sysmon: { level: "High", event: "1/6" },
+            powershell: { level: "Low", event: "—" },
+            defender: { level: "Medium", event: "Suspicious service" }
+          },
+          hunting: "PSEXESVCの生成と$ADMIN共有のアクセスを追跡。",
+          defense: "管理共有の制限、サービス作成の監査。",
+          iocs: ["psexec.exe", "PSEXESVC", "\\\\file\\ADMIN$"]
+        }
+      },
+      {
+        id: "task",
+        label: "Scheduled Task",
+        from: "client1",
+        to: "client2",
+        type: "malicious",
+        curve: 0.2,
+        detail: {
+          title: "タスクスケジューラによる永続化",
+          malicious: true,
+          mitre: ["T1053.005"],
+          description: "schtasksでバックドアを定期実行。",
+          logs: {
+            security: { level: "Medium", event: "4698 (Task created)" },
+            sysmon: { level: "Medium", event: "1" },
+            powershell: { level: "Low", event: "—" },
+            defender: { level: "Low", event: "—" }
+          },
+          hunting: "短命なタスクや無名タスク名を検出。",
+          defense: "タスク作成権限の制御と監査。",
+          iocs: ["schtasks.exe", "\\\\TaskCache\\Tree\\"]
+        }
+      },
+      {
+        id: "smb",
+        label: "SMB",
+        from: "client2",
+        to: "file",
+        type: "normal",
+        curve: 0.05,
+        detail: {
+          title: "SMBファイルアクセス",
+          malicious: false,
+          mitre: ["T1021.002"],
+          description: "ユーザーがファイルサーバーへ正規アクセス。",
+          logs: {
+            security: { level: "Low", event: "5140 (Share accessed)" },
+            sysmon: { level: "Low", event: "3" },
+            powershell: { level: "Low", event: "—" },
+            defender: { level: "Low", event: "—" }
+          },
+          hunting: "ファイルアクセス頻度とユーザー行動をベースライン化。",
+          defense: "アクセス制御とDLP強化。",
+          iocs: ["\\\\file\\Share", "SMB 445"]
+        }
+      },
+      {
+        id: "registry",
+        label: "Registry Persistence",
+        from: "client1",
+        to: "client1",
+        type: "malicious",
+        curve: 0.35,
+        self: true,
+        detail: {
+          title: "レジストリ永続化",
+          malicious: true,
+          mitre: ["T1547.001"],
+          description: "Runキーに悪意あるバイナリを登録。",
+          logs: {
+            security: { level: "Medium", event: "4657 (Registry value change)" },
+            sysmon: { level: "High", event: "13 (Registry value set)" },
+            powershell: { level: "Low", event: "—" },
+            defender: { level: "Medium", event: "Potential persistence" }
+          },
+          hunting: "Run/RunOnceキーの新規エントリを監査。",
+          defense: "レジストリ監査ポリシー、AppLocker。",
+          iocs: ["HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"]
+        }
+      },
+      {
+        id: "ntlm",
+        label: "NTLM Relay",
+        from: "client3",
+        to: "web",
+        type: "malicious",
+        curve: 0.22,
+        detail: {
+          title: "NTLM Relay 攻撃",
+          malicious: true,
+          mitre: ["T1557.001"],
+          description: "リレーされたNTLM認証でWebサーバーへ侵入。",
+          logs: {
+            security: { level: "High", event: "4624/4776" },
+            sysmon: { level: "Medium", event: "3" },
+            powershell: { level: "Low", event: "—" },
+            defender: { level: "Medium", event: "Suspicious authentication" }
+          },
+          hunting: "認証元とターゲットの不一致を検知。",
+          defense: "NTLM無効化、LDAP署名強制。",
+          iocs: ["ntlmrelayx", "HTTP NTLM", "Responder"]
+        }
+      },
+      {
+        id: "exfil",
+        label: "Data Exfiltration",
+        from: "db",
+        to: "c2",
+        type: "malicious",
+        curve: -0.22,
+        detail: {
+          title: "データ持ち出し",
+          malicious: true,
+          mitre: ["T1041"],
+          description: "機密DBを圧縮し外部C2へ送信。",
+          logs: {
+            security: { level: "High", event: "4663 (Object access)" },
+            sysmon: { level: "High", event: "3" },
+            powershell: { level: "Medium", event: "4104" },
+            defender: { level: "High", event: "Exfiltration attempt" }
+          },
+          hunting: "大容量の外向き転送と非業務時間帯の通信を検出。",
+          defense: "DLP、出口フィルタリング、UEBA。",
+          iocs: ["7z.exe", "rar.exe", "POST /upload"]
+        }
+      }
+    ];
+
+    const modal = document.getElementById("modal");
+    const modalContent = document.getElementById("modal-content");
+    const closeModal = document.getElementById("close-modal");
+
+    closeModal.addEventListener("click", () => modal.classList.remove("active"));
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        modal.classList.remove("active");
+      }
+    });
+
+    function severityClass(level) {
+      return {
+        Critical: "critical",
+        High: "high",
+        Medium: "medium",
+        Low: "low"
+      }[level] || "low";
+    }
+
+    function createModalContent(flow) {
+      const { detail } = flow;
+      const warning = detail.malicious
+        ? `<div class="warning">⚠️ 悪意通信：即時調査と隔離が必要です。</div>`
+        : "";
+
+      const tags = detail.mitre
+        .map((tag) => `<span class="tag">${tag}</span>`)
+        .join("");
+
+      const logs = `
+        <div class="log-grid">
+          <div class="log-item">
+            <span class="severity ${severityClass(detail.logs.security.level)}">${detail.logs.security.level}</span>
+            <strong>Windows Security Event Log</strong><br />
+            ${detail.logs.security.event}
+          </div>
+          <div class="log-item">
+            <span class="severity ${severityClass(detail.logs.sysmon.level)}">${detail.logs.sysmon.level}</span>
+            <strong>Sysmon Event Log</strong><br />
+            ${detail.logs.sysmon.event}
+          </div>
+          <div class="log-item">
+            <span class="severity ${severityClass(detail.logs.powershell.level)}">${detail.logs.powershell.level}</span>
+            <strong>PowerShell Operational Log</strong><br />
+            ${detail.logs.powershell.event}
+          </div>
+          <div class="log-item">
+            <span class="severity ${severityClass(detail.logs.defender.level)}">${detail.logs.defender.level}</span>
+            <strong>Windows Defender Log</strong><br />
+            ${detail.logs.defender.event}
+          </div>
+        </div>
+      `;
+
+      const iocs = detail.iocs
+        .map((ioc) => `<div>${ioc}</div>`)
+        .join("");
+
+      modalContent.innerHTML = `
+        <h2>${detail.title}</h2>
+        ${warning}
+        <p>${detail.description}</p>
+        <div class="tags">${tags}</div>
+        <div class="section">
+          <h3>ログ観測ポイント</h3>
+          ${logs}
+        </div>
+        <div class="section">
+          <h3>脅威ハンティング観点</h3>
+          <p>${detail.hunting}</p>
+        </div>
+        <div class="section">
+          <h3>検知・防御方法</h3>
+          <p>${detail.defense}</p>
+        </div>
+        <div class="section">
+          <h3>IOC</h3>
+          <div class="iotable">${iocs}</div>
+        </div>
+      `;
+    }
+
+    function renderFlows() {
+      const svg = document.getElementById("flow-layer");
+      const labels = document.getElementById("flow-labels");
+      const canvas = document.getElementById("canvas");
+
+      svg.innerHTML = "";
+      labels.innerHTML = "";
+
+      const rect = canvas.getBoundingClientRect();
+      svg.setAttribute("width", rect.width);
+      svg.setAttribute("height", rect.height);
+
+      flows.forEach((flow, index) => {
+        const from = document.getElementById(flow.from);
+        const to = document.getElementById(flow.to);
+
+        if (!from || !to) return;
+
+        const fromRect = from.getBoundingClientRect();
+        const toRect = to.getBoundingClientRect();
+        const start = {
+          x: fromRect.left + fromRect.width / 2 - rect.left,
+          y: fromRect.top + fromRect.height / 2 - rect.top
+        };
+        const end = {
+          x: toRect.left + toRect.width / 2 - rect.left,
+          y: toRect.top + toRect.height / 2 - rect.top
+        };
+
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const curveStrength = flow.self ? 120 : 120 + Math.abs(flow.curve || 0) * 120;
+        const offset = flow.self ? 120 : (flow.curve || 0) * 180;
+        const control1 = {
+          x: start.x + dx * 0.3 - dy * 0.2 + offset,
+          y: start.y + dy * 0.3 + dx * 0.2
+        };
+        const control2 = {
+          x: start.x + dx * 0.7 - dy * 0.2 + offset,
+          y: start.y + dy * 0.7 + dx * 0.2
+        };
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const d = flow.self
+          ? `M ${start.x} ${start.y} C ${start.x + curveStrength} ${start.y - curveStrength}, ${start.x + curveStrength} ${start.y + curveStrength}, ${start.x} ${start.y}`
+          : `M ${start.x} ${start.y} C ${control1.x} ${control1.y}, ${control2.x} ${control2.y}, ${end.x} ${end.y}`;
+
+        path.setAttribute("d", d);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke-width", "2.2");
+        path.setAttribute("stroke-linecap", "round");
+        path.setAttribute("stroke", flow.type === "malicious" ? "#f43f5e" : "#38bdf8");
+        if (flow.type === "malicious") {
+          path.setAttribute("stroke-dasharray", "6 6");
+          path.style.animation = "dash 2.5s linear infinite";
+        }
+
+        const markerId = `arrow-${index}`;
+        const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+        marker.setAttribute("id", markerId);
+        marker.setAttribute("markerWidth", "10");
+        marker.setAttribute("markerHeight", "10");
+        marker.setAttribute("refX", "8");
+        marker.setAttribute("refY", "3");
+        marker.setAttribute("orient", "auto");
+        marker.setAttribute("markerUnits", "strokeWidth");
+
+        const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        arrow.setAttribute("d", "M0,0 L9,3 L0,6 Z");
+        arrow.setAttribute("fill", flow.type === "malicious" ? "#f43f5e" : "#38bdf8");
+        marker.appendChild(arrow);
+        svg.appendChild(marker);
+        path.setAttribute("marker-end", `url(#${markerId})`);
+        svg.appendChild(path);
+
+        const label = document.createElement("button");
+        label.className = "flow-label";
+        label.textContent = flow.label;
+        label.style.left = `${(start.x + end.x) / 2 + offset * 0.2}px`;
+        label.style.top = `${(start.y + end.y) / 2 + offset * 0.1}px`;
+        label.addEventListener("click", () => {
+          createModalContent(flow);
+          modal.classList.add("active");
+        });
+        labels.appendChild(label);
+      });
+    }
+
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes dash {
+        from { stroke-dashoffset: 0; }
+        to { stroke-dashoffset: -24; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    window.addEventListener("resize", renderFlows);
+    window.addEventListener("load", renderFlows);
+  </script>
+</body>
+</html>
