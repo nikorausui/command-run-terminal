@@ -79,6 +79,13 @@
       padding: 0 40px 40px;
     }
 
+    .canvas-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 24px;
+      align-items: start;
+    }
+
     .canvas-wrapper {
       position: relative;
       background: var(--panel);
@@ -140,10 +147,30 @@
       pointer-events: none;
     }
 
-    .flow-labels {
-      margin-top: 24px;
+    .flow-panel {
+      background: rgba(19, 28, 47, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 560px;
+    }
+
+    .flow-panel h3 {
+      font-size: 16px;
+    }
+
+    .flow-panel p {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .flow-labels {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 12px;
     }
 
@@ -169,9 +196,9 @@
     }
 
     .legend {
-      margin-top: 16px;
       display: flex;
-      gap: 20px;
+      flex-direction: column;
+      gap: 10px;
       color: var(--muted);
       font-size: 12px;
     }
@@ -274,7 +301,21 @@
 
     .log-grid {
       display: grid;
-      gap: 10px;
+      gap: 14px;
+    }
+
+    .log-category {
+      display: grid;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(15, 22, 36, 0.65);
+    }
+
+    .log-category h5 {
+      font-size: 13px;
+      color: var(--accent-strong);
     }
 
     .log-item {
@@ -286,6 +327,11 @@
       justify-content: space-between;
       align-items: center;
       font-size: 13px;
+    }
+
+    .log-empty {
+      color: var(--muted);
+      font-size: 12px;
     }
 
     .severity {
@@ -338,6 +384,10 @@
         padding: 0 24px 32px;
       }
 
+      .canvas-layout {
+        grid-template-columns: 1fr;
+      }
+
       .network-grid {
         grid-template-columns: repeat(2, 1fr);
         grid-template-rows: repeat(4, 1fr);
@@ -371,50 +421,57 @@
   </section>
 
   <main>
-    <section class="canvas-wrapper">
-      <svg id="network-svg"></svg>
-      <div class="network-grid">
-        <div class="node compromised" data-node="client1" style="grid-column: 1; grid-row: 1;">
-          <div class="icon">💻</div>
-          <span>Client PC-1</span>
+    <div class="canvas-layout">
+      <section class="canvas-wrapper">
+        <svg id="network-svg"></svg>
+        <div class="network-grid">
+          <div class="node compromised" data-node="client1" style="grid-column: 1; grid-row: 1;">
+            <div class="icon">💻</div>
+            <span>Client PC-1</span>
+          </div>
+          <div class="node" data-node="client2" style="grid-column: 1; grid-row: 2;">
+            <div class="icon">💻</div>
+            <span>Client PC-2</span>
+          </div>
+          <div class="node compromised" data-node="client3" style="grid-column: 1; grid-row: 3;">
+            <div class="icon">💻</div>
+            <span>Client PC-3</span>
+          </div>
+          <div class="node" data-node="domain" style="grid-column: 3; grid-row: 2;">
+            <div class="icon">🗄️</div>
+            <span>Domain Controller</span>
+          </div>
+          <div class="node" data-node="file" style="grid-column: 4; grid-row: 1;">
+            <div class="icon">📁</div>
+            <span>File Server</span>
+          </div>
+          <div class="node compromised" data-node="web" style="grid-column: 4; grid-row: 2;">
+            <div class="icon">🌐</div>
+            <span>Web Server</span>
+          </div>
+          <div class="node" data-node="db" style="grid-column: 4; grid-row: 3;">
+            <div class="icon">🧮</div>
+            <span>Database Server</span>
+          </div>
+          <div class="node" data-node="c2" style="grid-column: 5; grid-row: 2;">
+            <div class="icon">🛰️</div>
+            <span>外部C2サーバー</span>
+          </div>
         </div>
-        <div class="node" data-node="client2" style="grid-column: 1; grid-row: 2;">
-          <div class="icon">💻</div>
-          <span>Client PC-2</span>
-        </div>
-        <div class="node compromised" data-node="client3" style="grid-column: 1; grid-row: 3;">
-          <div class="icon">💻</div>
-          <span>Client PC-3</span>
-        </div>
-        <div class="node" data-node="domain" style="grid-column: 3; grid-row: 2;">
-          <div class="icon">🗄️</div>
-          <span>Domain Controller</span>
-        </div>
-        <div class="node" data-node="file" style="grid-column: 4; grid-row: 1;">
-          <div class="icon">📁</div>
-          <span>File Server</span>
-        </div>
-        <div class="node compromised" data-node="web" style="grid-column: 4; grid-row: 2;">
-          <div class="icon">🌐</div>
-          <span>Web Server</span>
-        </div>
-        <div class="node" data-node="db" style="grid-column: 4; grid-row: 3;">
-          <div class="icon">🧮</div>
-          <span>Database Server</span>
-        </div>
-        <div class="node" data-node="c2" style="grid-column: 5; grid-row: 2;">
-          <div class="icon">🛰️</div>
-          <span>外部C2サーバー</span>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <div class="legend">
-      <span><i></i>正常通信</span>
-      <span><i class="malicious"></i>悪意通信</span>
+      <aside class="flow-panel">
+        <div>
+          <h3>通信ラベル</h3>
+          <p>通信タイプをクリックすると詳細なログ・脅威ハンティング観点・IOCを表示します。</p>
+        </div>
+        <div class="flow-labels" id="flow-labels"></div>
+        <div class="legend">
+          <span><i></i>正常通信</span>
+          <span><i class="malicious"></i>悪意通信</span>
+        </div>
+      </aside>
     </div>
-
-    <div class="flow-labels" id="flow-labels"></div>
   </main>
 
   <div class="modal" id="modal">
@@ -465,10 +522,16 @@
         hunting: "接続元端末のログオン頻度、時間帯、管理者権限の使用状況を突き合わせて異常なRDPセッションを洗い出します。",
         defense: "管理用ジャンプサーバー経由のRDP制御、NLAの必須化、監査ログの集中管理を実施します。",
         ioc: ["mstsc.exe", "Event ID 4624 (LogonType 10)", "C:\\Windows\\System32\\svchost.exe"],
-        logs: [
-          { category: "Windows Security Event Log", detail: "4624 Successful Logon (Type 10)", severity: "medium" },
-          { category: "Sysmon Event Log", detail: "Event ID 3 Network Connection", severity: "low" }
-        ]
+        logs: {
+          security: [
+            { detail: "4624 Successful Logon (Type 10)", severity: "medium" }
+          ],
+          sysmon: [
+            { detail: "Event ID 3 Network Connection", severity: "low" }
+          ],
+          powershell: [],
+          defender: []
+        }
       },
       {
         id: "pth",
@@ -481,10 +544,16 @@
         hunting: "同一端末からの複数アカウント横展開、NTLMログオンの急増、資格情報の再利用を監視します。",
         defense: "NTLM無効化、Credential Guard導入、管理アカウントのTier分離を実施します。",
         ioc: ["sekurlsa::pth", "lsass.exe handle access", "Event ID 4624 (LogonType 3)"] ,
-        logs: [
-          { category: "Windows Security Event Log", detail: "4624 Logon (NTLM, Type 3)", severity: "high" },
-          { category: "Sysmon Event Log", detail: "Event ID 10 Process Access (lsass.exe)", severity: "critical" }
-        ]
+        logs: {
+          security: [
+            { detail: "4624 Logon (NTLM, Type 3)", severity: "high" }
+          ],
+          sysmon: [
+            { detail: "Event ID 10 Process Access (lsass.exe)", severity: "critical" }
+          ],
+          powershell: [],
+          defender: []
+        }
       },
       {
         id: "mimikatz",
@@ -497,10 +566,16 @@
         hunting: "LSASSへのプロセスアクセス、署名されていないツール実行、メモリダンプの作成を監視します。",
         defense: "LSASS保護の有効化、EDRによる不正ツール遮断、ローカル管理者パスワードの変更を行います。",
         ioc: ["mimikatz.exe", "sekurlsa::logonpasswords", "procdump.exe -ma lsass.exe"],
-        logs: [
-          { category: "Sysmon Event Log", detail: "Event ID 10 Process Access", severity: "critical" },
-          { category: "Windows Defender Log", detail: "Threat detected: HackTool:Win64/Mimikatz", severity: "high" }
-        ]
+        logs: {
+          security: [],
+          sysmon: [
+            { detail: "Event ID 10 Process Access", severity: "critical" }
+          ],
+          powershell: [],
+          defender: [
+            { detail: "Threat detected: HackTool:Win64/Mimikatz", severity: "high" }
+          ]
+        }
       },
       {
         id: "cobalt",
@@ -513,11 +588,18 @@
         hunting: "周期的な通信、User-Agent偽装、HTTPSトンネリングをDNS/Proxyログで確認します。",
         defense: "Egressフィルタリング、SSL可視化、Beacon周期検知ルールを実装します。",
         ioc: ["/submit.php", "User-Agent: Mozilla/5.0 (compatible)", "c2.blue-team-demo.com"],
-        logs: [
-          { category: "Windows Security Event Log", detail: "5156 Allowed Connection to external IP", severity: "high" },
-          { category: "Sysmon Event Log", detail: "Event ID 3 Network Connection", severity: "high" },
-          { category: "Windows Defender Log", detail: "Suspicious outbound traffic", severity: "medium" }
-        ]
+        logs: {
+          security: [
+            { detail: "5156 Allowed Connection to external IP", severity: "high" }
+          ],
+          sysmon: [
+            { detail: "Event ID 3 Network Connection", severity: "high" }
+          ],
+          powershell: [],
+          defender: [
+            { detail: "Suspicious outbound traffic", severity: "medium" }
+          ]
+        }
       },
       {
         id: "kerberoast",
@@ -530,10 +612,16 @@
         hunting: "Event ID 4769のTGS要求急増、異常な暗号方式、特定サービスへの集中アクセスを監視します。",
         defense: "サービスアカウントの長いパスワード、AES優先設定、アカウント監査を実施します。",
         ioc: ["Rubeus.exe kerberoast", "Event ID 4769", "RC4 encryption"],
-        logs: [
-          { category: "Windows Security Event Log", detail: "4769 Kerberos TGS Request", severity: "high" },
-          { category: "Sysmon Event Log", detail: "Event ID 1 Process Create", severity: "medium" }
-        ]
+        logs: {
+          security: [
+            { detail: "4769 Kerberos TGS Request", severity: "high" }
+          ],
+          sysmon: [
+            { detail: "Event ID 1 Process Create", severity: "medium" }
+          ],
+          powershell: [],
+          defender: []
+        }
       },
       {
         id: "dcsync",
@@ -546,10 +634,16 @@
         hunting: "Event ID 4662のDS-Replicationアクセス、異常な権限変更を監視します。",
         defense: "DS-Replication権限の最小化、監査ログのアラート設定を行います。",
         ioc: ["Directory Replication Service", "Event ID 4662", "replication rights"],
-        logs: [
-          { category: "Windows Security Event Log", detail: "4662 Replication Access", severity: "critical" },
-          { category: "Sysmon Event Log", detail: "Event ID 1 Process Create", severity: "high" }
-        ]
+        logs: {
+          security: [
+            { detail: "4662 Replication Access", severity: "critical" }
+          ],
+          sysmon: [
+            { detail: "Event ID 1 Process Create", severity: "high" }
+          ],
+          powershell: [],
+          defender: []
+        }
       },
       {
         id: "golden",
@@ -562,10 +656,16 @@
         hunting: "KRBTGTアカウント利用、非常に長い有効期間のTGTを検知します。",
         defense: "KRBTGTパスワードの定期変更、異常TGT検知ルールの導入を行います。",
         ioc: ["Event ID 4768", "KRBTGT", "TGT lifetime > 10h"],
-        logs: [
-          { category: "Windows Security Event Log", detail: "4768 Kerberos TGT Request", severity: "high" },
-          { category: "Windows Defender Log", detail: "Credential theft alert", severity: "medium" }
-        ]
+        logs: {
+          security: [
+            { detail: "4768 Kerberos TGT Request", severity: "high" }
+          ],
+          sysmon: [],
+          powershell: [],
+          defender: [
+            { detail: "Credential theft alert", severity: "medium" }
+          ]
+        }
       },
       {
         id: "wmi",
@@ -578,10 +678,16 @@
         hunting: "wmiprvse.exeの生成と、WinRM利用状況を関連付けて確認します。",
         defense: "WMI権限の限定、監査ポリシーの強化を実施します。",
         ioc: ["wmic.exe", "wmiprvse.exe", "Event ID 5861"],
-        logs: [
-          { category: "Windows Security Event Log", detail: "4688 Process Creation (wmic.exe)", severity: "low" },
-          { category: "PowerShell Operational Log", detail: "Event ID 4104 WMI script block", severity: "medium" }
-        ]
+        logs: {
+          security: [
+            { detail: "4688 Process Creation (wmic.exe)", severity: "low" }
+          ],
+          sysmon: [],
+          powershell: [
+            { detail: "Event ID 4104 WMI script block", severity: "medium" }
+          ],
+          defender: []
+        }
       },
       {
         id: "empire",
@@ -594,10 +700,16 @@
         hunting: "PowerShell Script Block Log、疑わしいエンコード、ネットワーク越しの実行を監視します。",
         defense: "PowerShellログ有効化、AMSITの導入、Constrained Language Modeを検討します。",
         ioc: ["Invoke-Obfuscation", "Event ID 4104", "System.Net.WebClient"],
-        logs: [
-          { category: "PowerShell Operational Log", detail: "4104 Encoded Command", severity: "high" },
-          { category: "Windows Defender Log", detail: "Suspicious script activity", severity: "medium" }
-        ]
+        logs: {
+          security: [],
+          sysmon: [],
+          powershell: [
+            { detail: "4104 Encoded Command", severity: "high" }
+          ],
+          defender: [
+            { detail: "Suspicious script activity", severity: "medium" }
+          ]
+        }
       },
       {
         id: "psexec",
@@ -610,10 +722,16 @@
         hunting: "PSEXESVCの生成、ADMIN$共有へのアクセス、サービス作成を監視します。",
         defense: "管理共有の制限、Sysmonサービス作成監視を実施します。",
         ioc: ["psexec.exe", "PSEXESVC", "Event ID 7045"],
-        logs: [
-          { category: "Windows Security Event Log", detail: "7045 New Service Install", severity: "high" },
-          { category: "Sysmon Event Log", detail: "Event ID 6 Driver Load", severity: "medium" }
-        ]
+        logs: {
+          security: [
+            { detail: "7045 New Service Install", severity: "high" }
+          ],
+          sysmon: [
+            { detail: "Event ID 6 Driver Load", severity: "medium" }
+          ],
+          powershell: [],
+          defender: []
+        }
       },
       {
         id: "scheduled",
@@ -626,10 +744,16 @@
         hunting: "TaskSchedulerログ、異常なタスク名、SYSTEM権限実行を確認します。",
         defense: "タスク作成監査の有効化、管理者権限の見直しを行います。",
         ioc: ["schtasks /create", "Event ID 4698", "\"UpdateService\""],
-        logs: [
-          { category: "Windows Security Event Log", detail: "4698 Scheduled Task Created", severity: "high" },
-          { category: "Sysmon Event Log", detail: "Event ID 1 Process Create", severity: "medium" }
-        ]
+        logs: {
+          security: [
+            { detail: "4698 Scheduled Task Created", severity: "high" }
+          ],
+          sysmon: [
+            { detail: "Event ID 1 Process Create", severity: "medium" }
+          ],
+          powershell: [],
+          defender: []
+        }
       },
       {
         id: "smb",
@@ -642,10 +766,16 @@
         hunting: "SMBアクセスパターン、共有権限の逸脱、ファイル書き換え頻度を確認します。",
         defense: "SMB署名、有効なアクセス制御、DLPポリシーを適用します。",
         ioc: ["\\\\fileserver\\share", "Event ID 5140", "smbclient.exe"],
-        logs: [
-          { category: "Windows Security Event Log", detail: "5140 File Share Access", severity: "low" },
-          { category: "Sysmon Event Log", detail: "Event ID 3 Network Connection", severity: "low" }
-        ]
+        logs: {
+          security: [
+            { detail: "5140 File Share Access", severity: "low" }
+          ],
+          sysmon: [
+            { detail: "Event ID 3 Network Connection", severity: "low" }
+          ],
+          powershell: [],
+          defender: []
+        }
       },
       {
         id: "registry",
@@ -658,10 +788,16 @@
         hunting: "Runキー変更イベントと不審プロセス起動を相関させます。",
         defense: "AutoRun監視、レジストリアクセスの制限を行います。",
         ioc: ["HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "Event ID 4657", "update.exe"],
-        logs: [
-          { category: "Windows Security Event Log", detail: "4657 Registry Value Change", severity: "high" },
-          { category: "Sysmon Event Log", detail: "Event ID 13 Registry Value Set", severity: "medium" }
-        ]
+        logs: {
+          security: [
+            { detail: "4657 Registry Value Change", severity: "high" }
+          ],
+          sysmon: [
+            { detail: "Event ID 13 Registry Value Set", severity: "medium" }
+          ],
+          powershell: [],
+          defender: []
+        }
       },
       {
         id: "ntlm",
@@ -674,10 +810,16 @@
         hunting: "同一IDによる複数ホスト認証、SMB署名未設定を監視します。",
         defense: "SMB署名の強制、LDAP署名、NTLM制限を実施します。",
         ioc: ["ntlmrelayx", "Event ID 4624", "SMB Signing disabled"],
-        logs: [
-          { category: "Windows Security Event Log", detail: "4624 Logon (NTLM Relay suspected)", severity: "high" },
-          { category: "Sysmon Event Log", detail: "Event ID 3 Network Connection", severity: "medium" }
-        ]
+        logs: {
+          security: [
+            { detail: "4624 Logon (NTLM Relay suspected)", severity: "high" }
+          ],
+          sysmon: [
+            { detail: "Event ID 3 Network Connection", severity: "medium" }
+          ],
+          powershell: [],
+          defender: []
+        }
       },
       {
         id: "exfil",
@@ -690,11 +832,18 @@
         hunting: "大量転送、非業務時間帯の外部通信、圧縮ファイルの生成を監視します。",
         defense: "DLP、ネットワークセグメンテーション、外部送信制御を行います。",
         ioc: ["7z.exe", "POST /upload", "data.outbound.tar"],
-        logs: [
-          { category: "Windows Security Event Log", detail: "5156 Outbound Data Transfer", severity: "critical" },
-          { category: "Sysmon Event Log", detail: "Event ID 3 Network Connection", severity: "high" },
-          { category: "Windows Defender Log", detail: "Data theft alert", severity: "high" }
-        ]
+        logs: {
+          security: [
+            { detail: "5156 Outbound Data Transfer", severity: "critical" }
+          ],
+          sysmon: [
+            { detail: "Event ID 3 Network Connection", severity: "high" }
+          ],
+          powershell: [],
+          defender: [
+            { detail: "Data theft alert", severity: "high" }
+          ]
+        }
       }
     ];
 
@@ -828,15 +977,40 @@
       modalDescription.textContent = flow.description;
 
       modalLogs.innerHTML = "";
-      flow.logs.forEach(log => {
-        const item = document.createElement("div");
-        item.className = "log-item";
-        const severity = document.createElement("span");
-        severity.className = `severity ${log.severity}`;
-        severity.textContent = log.severity;
-        item.innerHTML = `<strong>${log.category}</strong><span>${log.detail}</span>`;
-        item.appendChild(severity);
-        modalLogs.appendChild(item);
+      const categories = [
+        { key: "security", label: "Windows Security Event Log" },
+        { key: "sysmon", label: "Sysmon Event Log" },
+        { key: "powershell", label: "PowerShell Operational Log" },
+        { key: "defender", label: "Windows Defender Log" }
+      ];
+
+      categories.forEach(category => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "log-category";
+        const title = document.createElement("h5");
+        title.textContent = category.label;
+        wrapper.appendChild(title);
+
+        const entries = flow.logs[category.key] || [];
+        if (entries.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "log-empty";
+          empty.textContent = "該当ログなし";
+          wrapper.appendChild(empty);
+        } else {
+          entries.forEach(log => {
+            const item = document.createElement("div");
+            item.className = "log-item";
+            const severity = document.createElement("span");
+            severity.className = `severity ${log.severity}`;
+            severity.textContent = log.severity;
+            item.innerHTML = `<span>${log.detail}</span>`;
+            item.appendChild(severity);
+            wrapper.appendChild(item);
+          });
+        }
+
+        modalLogs.appendChild(wrapper);
       });
 
       modalHunting.textContent = flow.hunting;
