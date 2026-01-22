@@ -1,0 +1,10 @@
+{
+  "name": "threat-hunting-visualization",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Static threat hunting visualization dashboard",
+  "scripts": {
+    "dev": "python -m http.server 8000",
+    "start": "python -m http.server 8000"
+  }
+}
